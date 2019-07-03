@@ -153,9 +153,9 @@ public class motorModel{
 
     public static void main(String[] args){
 	motor myMotor = new motor(2.41, 5330);
-	inertialDisk myDisk = new inertialDisk(0.1);
-	spring mySpring = new spring(.5); 
-	model myModel = new model(myMotor,myDisk,mySpring,0.01);
+	inertialDisk myDisk = new inertialDisk(0.0001);
+	spring mySpring = new spring(.091106); 
+	model myModel = new model(myMotor,myDisk,mySpring,0.00001);
 	myModel.run();
     }
     
