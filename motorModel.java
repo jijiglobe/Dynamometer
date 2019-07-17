@@ -1,4 +1,4 @@
-
+import java.util.Random;
 import java.util.*;
 import java.io.*;
 
@@ -82,17 +82,32 @@ class spring{
 }
 class encoder{
     private int EPR,totalCounter;
-    private double step;
+    private double step, noise;
     public encoder(int edgesPerRevolution){
 	EPR = edgesPerRevolution;
 	step = 2*Math.PI/EPR;
 	totalCounter = 0;
+	noise = 0.0;
     }
 
+    public encoder(int edgesPerRevolution, double noise){
+	this(edgesPerRevolution);
+	this.noise = noise;
+    }
+    
     public int readAndClear(double displacement){
 	int newCounter = (int) (displacement / step);
 	int countHolder = newCounter - totalCounter;
 	totalCounter = newCounter;
+	double randomNumber = Math.random();
+	if(randomNumber < noise){
+	    //System.out.println("plus one");
+	    return countHolder+1;
+	}
+	if(randomNumber < noise * 2 && countHolder > 0){
+	    //System.out.println("minus one");
+	    return countHolder-1;
+	}
 	return countHolder;
     }
 }
@@ -182,9 +197,8 @@ public class motorModel{
 	motor myMotor = new motor(2.41, 5330);
 	inertialDisk myDisk = new inertialDisk(0.0001);
 	spring mySpring = new spring(.091106); 
-	encoder myEncoder = new encoder(4096);
-	model myModel = new model(myMotor,myDisk,mySpring,myEncoder,100000000,1000000,false);
+	encoder myEncoder = new encoder(4096,.1);
+	model myModel = new model(myMotor,myDisk,mySpring,myEncoder,100000000,250000,false);
 	myModel.run();
     }
-    
 }
