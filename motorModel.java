@@ -80,33 +80,56 @@ class spring{
 	
     }
 }
+class encoder{
+    private int EPR,totalCounter;
+    private double step;
+    public encoder(int edgesPerRevolution){
+	EPR = edgesPerRevolution;
+	step = 2*Math.PI/EPR;
+	totalCounter = 0;
+    }
+
+    public int readAndClear(double displacement){
+	int newCounter = (int) (displacement / step);
+	int countHolder = newCounter - totalCounter;
+	totalCounter = newCounter;
+	return countHolder;
+    }
+}
 
 class model{
     private motor myMotor;
     private inertialDisk myDisk;
     private spring mySpring;
-    private double increment,time;
+    private encoder myEncoder;
+    private double increment,time,samplingPeriod,resetTime;
     private boolean isVerbose;
-    	
+    
     public model(motor myMotor,inertialDisk myDisk, spring mySpring,
-		 double timeResolution){
+		 encoder myEncoder,int timeResolution,int sampleRate){
 	//takes a properly constructed motor, disk and spring
 	//time resolution determines how often the system updates
+	//samples determines the period between samples of the decoder
 	//verbose determines if the system will print extra data when run
 	this.myMotor = myMotor;
 	this.myDisk = myDisk;
 	this.mySpring = mySpring;
-	increment = timeResolution;
-	time = 0.0;
+	this.myEncoder = myEncoder;
+	increment = 1/(double)timeResolution;
+	samplingPeriod = 1/(double)sampleRate;
+	resetTime = 0;
+	time = 0.0;//the time since the system was initialized.
+	isVerbose = false;
     }
     public model(motor myMotor,inertialDisk myDisk, spring mySpring,
-		 double timeResolution, boolean verbose){
-	this(myMotor,myDisk,mySpring,timeResolution);
+		 encoder myEncoder,int timeResolution,int sampleRate,  boolean verbose){
+	this(myMotor,myDisk,mySpring,myEncoder,timeResolution,sampleRate);
 	isVerbose = verbose;
     }
     public double step(){
 	//increment the entire system by single step
 	time += increment;
+	resetTime += increment;
 	double speed = myDisk.getVelocity();
 	double motorTorque = myMotor.getTorque(speed);
 	double springTorque = mySpring.getTorque(myDisk.getAngle());
@@ -123,7 +146,7 @@ class model{
 	//   - note that this shouldn't be possible
 	try{
 	    BufferedWriter fileWriter = new BufferedWriter(new FileWriter("model.csv"));
-	    String line = String.format("Time(s),Angle(rad),Angular Velocity(rad/s)");
+	    String line = String.format("Time(s),Angle(rad),Angular Velocity(rad/s),edges");
 	    fileWriter.write(line);
 	    
 	    double previousSpeed = 0.0;
@@ -135,8 +158,12 @@ class model{
 		currentSpeed = step();
 		//System.out.printf("\nTime: %5.2f\nPosition: %5.2f, Angular Velocity: %5.2f\n",
 		//		  time,myDisk.getAngle(),currentSpeed);
-		line = String.format("\n%f,%f,%f",time,myDisk.getAngle(),currentSpeed);
-		fileWriter.write(line);
+		if(resetTime > samplingPeriod){
+		    line = String.format("\n%f,%f,%f,%d",time,myDisk.getAngle()
+					 ,currentSpeed,myEncoder.readAndClear(myDisk.getAngle()));
+		    resetTime = 0;
+		    fileWriter.write(line);
+		}
 		
 	    }
 	    fileWriter.close();
@@ -155,7 +182,8 @@ public class motorModel{
 	motor myMotor = new motor(2.41, 5330);
 	inertialDisk myDisk = new inertialDisk(0.0001);
 	spring mySpring = new spring(.091106); 
-	model myModel = new model(myMotor,myDisk,mySpring,0.00001);
+	encoder myEncoder = new encoder(4096);
+	model myModel = new model(myMotor,myDisk,mySpring,myEncoder,100000000,1000000,false);
 	myModel.run();
     }
     
