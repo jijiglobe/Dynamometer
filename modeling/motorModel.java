@@ -160,8 +160,8 @@ class model{
 	//will fail if system never reaches back back below 0.1rad/s
 	//   - note that this shouldn't be possible
 	try{
-	    BufferedWriter fileWriter = new BufferedWriter(new FileWriter("model.csv"));
-	    String line = String.format("Time(s),edges");
+	    BufferedWriter fileWriter = new BufferedWriter(new FileWriter("../analysis/model.csv"));
+	    String line = String.format("Time(s),edges,TrueAngle,TrueVelocity");
 	    fileWriter.write(line);
 	    
 	    double previousSpeed = 0.0;
@@ -174,7 +174,7 @@ class model{
 		//System.out.printf("\nTime: %5.2f\nPosition: %5.2f, Angular Velocity: %5.2f\n",
 		//		  time,myDisk.getAngle(),currentSpeed);
 		if(resetTime > samplingPeriod){
-		    line = String.format("\n%f,%d",time,myEncoder.readAndClear(myDisk.getAngle()));
+		    line = String.format("\n%f,%d,%f,%f",time,myEncoder.readAndClear(myDisk.getAngle()),myDisk.getAngle(),myDisk.getVelocity());
 		    resetTime = 0;
 		    fileWriter.write(line);
 		}
