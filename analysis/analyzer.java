@@ -5,6 +5,10 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 
@@ -13,23 +17,27 @@ class analyzer extends ApplicationFrame {
     public analyzer( String applicationTitle , String chartTitle,
 		     ArrayList<double[]> dataArray) {
 	super(applicationTitle);
-	JFreeChart lineChart = ChartFactory.createLineChart(
+	JFreeChart lineChart = ChartFactory.createXYLineChart(
 							    chartTitle,
-							    "Torque","Speed",
-							    createDataset(dataArray),
-							    PlotOrientation.VERTICAL,
-							    true,true,false);
+							    "Torque(n*m)",
+							    "Angular Velocity(rad/s)",
+							    createDataset(dataArray));
          
+	//CategoryPlot plot = (CategoryPlot) lineChart.getPlot();
+	//plot.getDomainAxis().setTickUnit(0.5);
 	ChartPanel chartPanel = new ChartPanel( lineChart );
 	chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
 	setContentPane( chartPanel );
     }
 
-    private DefaultCategoryDataset createDataset(ArrayList<double[]> dataArray) {
-	DefaultCategoryDataset dataset = new DefaultCategoryDataset( );
+    private XYSeriesCollection createDataset(ArrayList<double[]> dataArray) {
+	XYSeriesCollection dataset = new XYSeriesCollection( );
+	XYSeries series = new XYSeries("bad approximation");
 	for(double[] row : dataArray){
-	    dataset.addValue((Number)row[1], "Speed" , row[0] );
+	    //dataset.addValue((Number)row[1], "Speed" , row[0] );
+	    series.add(row[0],row[1]);
 	}
+	dataset.addSeries(series);
 	return dataset;
     }
 
@@ -94,12 +102,13 @@ class analyzer extends ApplicationFrame {
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
 	ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data,0.091106);
-	printArray(dumbVelocityArray);
+	//printArray(dumbVelocityArray);
+
 	analyzer chart = new analyzer(
 				      "Torque Vs. Speed" ,
 				      "Torque Vs. Speed",
 				      dumbVelocityArray);
-
+	
 	chart.pack( );
 	RefineryUtilities.centerFrameOnScreen( chart );
 	chart.setVisible( true );
