@@ -85,29 +85,70 @@ class analyzer extends ApplicationFrame {
 	}
     }	
     
-    public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray,
-							 double springCoefficient){
+    public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
-	for(int i = 30; i < dataArray.size()-30;i++){
-	    double[] newRow = new double[2];
-	    newRow[0] = dataArray.get(i)[5]*springCoefficient;
-	    newRow[1] = (dataArray.get(i+30)[5]-dataArray.get(i-30)[5]) /
-		(dataArray.get(i+30)[0] - dataArray.get(i-30)[0]);
+	for(int i = 100; i < dataArray.size()-100;i++){
+	    double[] newRow = new double[3];
+	    //newRow[0] = dataArray.get(i)[5]*springCoefficient;
+	    newRow[0] = dataArray.get(i)[0];
+	    newRow[1] = (dataArray.get(i+100)[5]-dataArray.get(i-100)[5]) /
+		(dataArray.get(i+100)[0] - dataArray.get(i-100)[0]);
+	    newRow[2] = dataArray.get(i)[5];
 	    velocityArray.add(newRow);
 	}
 	return velocityArray;
     }
     
+    public static ArrayList<double[]> basicAccelerationArray(ArrayList<double[]> dataArray){
+	ArrayList<double[]> accelerationArray = new ArrayList<double[]>();
+	for(int i = 500; i < dataArray.size()-500;i++){
+	    double[] newRow = new double[2];
+	    //newRow[0] = dataArray.get(i)[5]*springCoefficient;
+	    newRow[0] = dataArray.get(i)[0];
+	    newRow[1] = (dataArray.get(i+500)[1]-dataArray.get(i-500)[1]) /
+		(dataArray.get(i+500)[0] - dataArray.get(i-500)[0]);
+	    accelerationArray.add(newRow);
+	}
+	return accelerationArray;
+    }
+
+    public static ArrayList<double[]> generateMotorCurve(ArrayList<double[]> velocity,
+							 ArrayList<double[]> acceleration,
+							 double springCoeff,
+							 double diskInertia){
+	ArrayList<double[]> curve = new ArrayList<double[]>();
+	int offset;
+	for(offset = 0; velocity.get(offset)[0] < acceleration.get(0)[0];offset++){}
+	for(int i = 0; i < acceleration.size(); i++){
+	    double accel = acceleration.get(i)[1];
+	    double vel = velocity.get(i+offset)[1];
+	    double SpringTorque = velocity.get(i+offset)[2] * springCoeff;
+	    double inertialTorque = accel * diskInertia;
+	    double[] newRow = new double[2];
+	    newRow[0] = SpringTorque + inertialTorque;
+	    newRow[1] = vel;
+	    curve.add(newRow);
+	}
+	return curve;
+    }
     public static void main(String[] args){
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
-	ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data,0.091106);
+	ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data);
+	ArrayList<double[]> dumbAccelerationArray = basicAccelerationArray(data);
+	double torque = 0.091106;
+	double rotationalInertia=0.0001;
+	ArrayList<double[]> motorCurve = generateMotorCurve(dumbVelocityArray,
+							    dumbAccelerationArray,
+							    torque,rotationalInertia);
+	//ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data,0.091106);
+
 	//printArray(dumbVelocityArray);
 
 	analyzer chart = new analyzer(
 				      "Torque Vs. Speed" ,
 				      "Torque Vs. Speed",
-				      dumbVelocityArray);
+				      motorCurve);
 	
 	chart.pack( );
 	RefineryUtilities.centerFrameOnScreen( chart );
