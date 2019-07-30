@@ -196,7 +196,7 @@ public class motorModel{
 	motor myMotor = new motor(2.41, 5330);
 	inertialDisk myDisk = new inertialDisk(0.0001);
 	spring mySpring = new spring(.091106); 
-	encoder myEncoder = new encoder(4096,.1);
+	encoder myEncoder = new encoder(4096,0.10);
 	model myModel = new model(myMotor,myDisk,mySpring,myEncoder,100000000,250000,false);
 	myModel.run();
     }

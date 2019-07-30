@@ -14,17 +14,15 @@ import org.jfree.data.category.DefaultCategoryDataset;
 
 class analyzer extends ApplicationFrame {
     //---------------- DATA VISUALIZATION CODE BELOW------------------
-    public analyzer( String applicationTitle , String chartTitle,
+    public analyzer( String xvar , String yvar,
 		     ArrayList<double[]> dataArray) {
-	super(applicationTitle);
+	super(yvar+" vs. "+xvar);
 	JFreeChart lineChart = ChartFactory.createXYLineChart(
-							    chartTitle,
-							    "Torque(n*m)",
-							    "Angular Velocity(rad/s)",
+							    yvar+" vs. "+xvar,
+							    xvar,
+							    yvar,
 							    createDataset(dataArray));
          
-	//CategoryPlot plot = (CategoryPlot) lineChart.getPlot();
-	//plot.getDomainAxis().setTickUnit(0.5);
 	ChartPanel chartPanel = new ChartPanel( lineChart );
 	chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
 	setContentPane( chartPanel );
@@ -32,9 +30,8 @@ class analyzer extends ApplicationFrame {
 
     private XYSeriesCollection createDataset(ArrayList<double[]> dataArray) {
 	XYSeriesCollection dataset = new XYSeriesCollection( );
-	XYSeries series = new XYSeries("bad approximation");
+	XYSeries series = new XYSeries("movingAverageFilter(100) - no Noise");
 	for(double[] row : dataArray){
-	    //dataset.addValue((Number)row[1], "Speed" , row[0] );
 	    series.add(row[0],row[1]);
 	}
 	dataset.addSeries(series);
@@ -84,7 +81,16 @@ class analyzer extends ApplicationFrame {
 	    System.out.printf("\n");
 	}
     }	
-    
+    public static ArrayList<double[]> createPositionArray(ArrayList<double[]> dataArray){
+	ArrayList<double[]> ans = new ArrayList<double[]>();
+	for(double[] row : dataArray){
+	    double[] newRow = new double[2];
+	    newRow[0] = row[0];
+	    newRow[1] = row[5];
+	    ans.add(newRow);
+	}
+	return ans;
+    }
     public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
 	for(int i = 100; i < dataArray.size()-100;i++){
@@ -103,7 +109,6 @@ class analyzer extends ApplicationFrame {
 	ArrayList<double[]> accelerationArray = new ArrayList<double[]>();
 	for(int i = 500; i < dataArray.size()-500;i++){
 	    double[] newRow = new double[2];
-	    //newRow[0] = dataArray.get(i)[5]*springCoefficient;
 	    newRow[0] = dataArray.get(i)[0];
 	    newRow[1] = (dataArray.get(i+500)[1]-dataArray.get(i-500)[1]) /
 		(dataArray.get(i+500)[0] - dataArray.get(i-500)[0]);
@@ -134,24 +139,49 @@ class analyzer extends ApplicationFrame {
     public static void main(String[] args){
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
-	ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data);
-	ArrayList<double[]> dumbAccelerationArray = basicAccelerationArray(data);
+	ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
+	ArrayList<double[]> dumbVelocityArray = filters.movingAverageFilter(basicVelocityArray(data),100);
+	ArrayList<double[]> dumbAccelerationArray = filters.movingAverageFilter(basicAccelerationArray(dumbVelocityArray),100);
+	//ArrayList<double[]> positionArray = createPositionArray(data);
+	//ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data);
+	//ArrayList<double[]> dumbAccelerationArray = basicAccelerationArray(dumbVelocityArray);
 	double torque = 0.091106;
 	double rotationalInertia=0.0001;
 	ArrayList<double[]> motorCurve = generateMotorCurve(dumbVelocityArray,
 							    dumbAccelerationArray,
 							    torque,rotationalInertia);
-	//ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data,0.091106);
-
-	//printArray(dumbVelocityArray);
 
 	analyzer chart = new analyzer(
-				      "Torque Vs. Speed" ,
-				      "Torque Vs. Speed",
-				      motorCurve);
+				      "Time(s)",
+				      "Position(rad)" ,
+				      positionArray);
 	
 	chart.pack( );
-	RefineryUtilities.centerFrameOnScreen( chart );
-	chart.setVisible( true );
+	chart.setVisible( true ); 
+
+	analyzer chart2 = new analyzer(
+				      "Time(s)",
+				      "Angular Velocity(rad/s)" ,
+				      dumbVelocityArray);
+	
+	chart2.pack( );
+	chart2.setLocation(630,0);
+	chart2.setVisible( true );
+	analyzer chart3 = new analyzer(
+				      "Time(s)",
+				      "Angular Acceleration(rad/s^2)" ,
+				      dumbAccelerationArray);
+	
+	chart3.pack( );
+	chart3.setLocation(0,427);
+	chart3.setVisible( true ); 
+	analyzer chart4 = new analyzer(
+				      "Torque(N*M)" ,
+				      "Angular Velocity(Rad/S)",
+				      motorCurve);
+	
+	chart4.pack( );
+	chart4.setLocation(630,427);
+	chart4.setVisible( true );
     }
 }
