@@ -64,7 +64,7 @@ class analyzer extends ApplicationFrame {
     }
 
     public static void update(ArrayList<double[]> dataArray){
-	//[time(s),edges,totalEdges,Angle(rad)]
+	//[time(s),edges,trueAngle,trueVelocity,totalEdges,Angle(rad)]
 	int totalEdges = 0;
 	for(double[] row : dataArray){
 	    totalEdges += row[1];
@@ -92,26 +92,53 @@ class analyzer extends ApplicationFrame {
 	return ans;
     }
     public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
+	int width = 100;
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
-	for(int i = 100; i < dataArray.size()-100;i++){
+	for(int i = 0; i < dataArray.size();i++){
 	    double[] newRow = new double[3];
-	    //newRow[0] = dataArray.get(i)[5]*springCoefficient;
-	    newRow[0] = dataArray.get(i)[0];
-	    newRow[1] = (dataArray.get(i+100)[5]-dataArray.get(i-100)[5]) /
-		(dataArray.get(i+100)[0] - dataArray.get(i-100)[0]);
-	    newRow[2] = dataArray.get(i)[5];
+	    if( i < width ){
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(i+width)[1]-dataArray.get(0)[1]) /
+		    (dataArray.get(i+width)[0] - dataArray.get(0)[0]);
+		newRow[2] = dataArray.get(i)[1];
+	    }
+	    else if( i >= dataArray.size() - width ){
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(dataArray.size()-1)[1]-dataArray.get(i-width)[1]) /
+		    (dataArray.get(dataArray.size()-1)[0] - dataArray.get(i-width)[0]);
+		newRow[2] = dataArray.get(i)[1];
+	    }else{
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(i+width)[1]-dataArray.get(i-width)[1]) /
+		    (dataArray.get(i+width)[0] - dataArray.get(i-width)[0]);
+		newRow[2] = dataArray.get(i)[1];
+	    }
 	    velocityArray.add(newRow);
 	}
 	return velocityArray;
     }
     
     public static ArrayList<double[]> basicAccelerationArray(ArrayList<double[]> dataArray){
+	int width = 500;
 	ArrayList<double[]> accelerationArray = new ArrayList<double[]>();
-	for(int i = 500; i < dataArray.size()-500;i++){
+	for(int i = 0; i < dataArray.size();i++){
 	    double[] newRow = new double[2];
-	    newRow[0] = dataArray.get(i)[0];
-	    newRow[1] = (dataArray.get(i+500)[1]-dataArray.get(i-500)[1]) /
-		(dataArray.get(i+500)[0] - dataArray.get(i-500)[0]);
+	    if( i < width){
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(i+width)[1]-dataArray.get(0)[1]) /
+		    (dataArray.get(i+width)[0] - dataArray.get(0)[0]);
+
+	    }
+	    else if(i >= dataArray.size() - width){
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(dataArray.size()-1)[1]-dataArray.get(i-width)[1]) /
+		    (dataArray.get(dataArray.size()-1)[0] - dataArray.get(i-width)[0]);
+
+	    }else{
+		newRow[0] = dataArray.get(i)[0];
+		newRow[1] = (dataArray.get(i+width)[1]-dataArray.get(i-width)[1]) /
+		    (dataArray.get(i+width)[0] - dataArray.get(i-width)[0]);
+	    }
 	    accelerationArray.add(newRow);
 	}
 	return accelerationArray;
@@ -136,52 +163,104 @@ class analyzer extends ApplicationFrame {
 	}
 	return curve;
     }
-    public static void main(String[] args){
-	ArrayList<double[]> data = readCSV("model.csv");
-	update(data);
-	ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
-	ArrayList<double[]> dumbVelocityArray = filters.movingAverageFilter(basicVelocityArray(data),100);
-	ArrayList<double[]> dumbAccelerationArray = filters.movingAverageFilter(basicAccelerationArray(dumbVelocityArray),100);
-	//ArrayList<double[]> positionArray = createPositionArray(data);
-	//ArrayList<double[]> dumbVelocityArray = basicVelocityArray(data);
-	//ArrayList<double[]> dumbAccelerationArray = basicAccelerationArray(dumbVelocityArray);
+
+
+    //takes the updated CSV array and returns the curves in [position,vel,acc,motor_curve] form
+    public static ArrayList<ArrayList<double[]>> basicCurveArray(ArrayList<double[]> data){
 	double torque = 0.091106;
 	double rotationalInertia=0.0001;
-	ArrayList<double[]> motorCurve = generateMotorCurve(dumbVelocityArray,
-							    dumbAccelerationArray,
-							    torque,rotationalInertia);
+	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
+	//ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
+	ans.add(filters.movingAverageFilter(createPositionArray(data),100));
+	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
+	ans.add(filters.movingAverageFilter(basicAccelerationArray(ans.get(1)),100));
+	ans.add(generateMotorCurve(ans.get(1),
+				   ans.get(2),
+				   torque,rotationalInertia));
+	return ans;
+    }
+    
+    public static ArrayList<double[]> kalmanPosition(ArrayList<double[]> data){
+	ArrayList<double[]> velocity = filters.movingAverageFilter(basicVelocityArray(data),1000);
+	double[][] X = new double[1][1];
+	X[0][0] = 0;
+	double[][] P = new double[1][1];
+	P[0][0] = 0;
+	double[][] Q = new double[1][1];
+	Q[0][0] = 0;
+	double[][] newPredictionMatrix = new double[1][1];
+	double[][] sensorStateVector = new double[1][1];
+	double[][] sensorCovariance = new double[1][1];
 
+        double timeStep;
+	myKalmanFilter myFilter = new myKalmanFilter(X,P,Q);
+	//filters.testClass = new filters.testClass(1);
+	ArrayList<double[]> ans = new ArrayList<double[]>();
+	for(int i = 0; i < data.size() - 1; i++){
+	    double[] newRow = new double[2];
+	    newRow[0] = data.get(i)[0];
+	    newRow[1] = myFilter.getState().get(0,0);
+	    timeStep = data.get(i+1)[0] - newRow[0]; 
+	    newPredictionMatrix[0][0] = newRow[1] + (timeStep * newRow[1]);
+	    myFilter.updatePredictionMatrix(newPredictionMatrix);
+
+	    sensorStateVector[0][0] = newRow[0] + (2*Math.PI*data.get(i)[1]/4096);
+	    sensorCovariance[0][0] = 2*Math.PI/4096;
+	}
+	return ans;
+    }
+
+    
+    
+    public static ArrayList<ArrayList<double[]>> generateKalmanArray(ArrayList<double[]> data){
+	double torque = 0.091106;
+	double rotationalInertia=0.0001;
+	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
+	ArrayList<double[]> positionArray = kalmanPosition(data);
+	ans.add(positionArray);
+	
+	return ans;
+    }
+    
+    public static void displayCharts(ArrayList<ArrayList<double[]>> curves){
 	analyzer chart = new analyzer(
 				      "Time(s)",
 				      "Position(rad)" ,
-				      positionArray);
+				      curves.get(0));
 	
 	chart.pack( );
 	chart.setVisible( true ); 
-
+	
 	analyzer chart2 = new analyzer(
-				      "Time(s)",
-				      "Angular Velocity(rad/s)" ,
-				      dumbVelocityArray);
+				       "Time(s)",
+				       "Angular Velocity(rad/s)" ,
+				       curves.get(1));
 	
 	chart2.pack( );
 	chart2.setLocation(630,0);
 	chart2.setVisible( true );
 	analyzer chart3 = new analyzer(
-				      "Time(s)",
-				      "Angular Acceleration(rad/s^2)" ,
-				      dumbAccelerationArray);
+				       "Time(s)",
+				       "Angular Acceleration(rad/s^2)" ,
+				       curves.get(2));
 	
 	chart3.pack( );
 	chart3.setLocation(0,427);
 	chart3.setVisible( true ); 
 	analyzer chart4 = new analyzer(
-				      "Torque(N*M)" ,
-				      "Angular Velocity(Rad/S)",
-				      motorCurve);
+				       "Torque(N*M)" ,
+				       "Angular Velocity(Rad/S)",
+				       curves.get(3));
 	
 	chart4.pack( );
 	chart4.setLocation(630,427);
-	chart4.setVisible( true );
+	chart4.setVisible( true );	
+    }
+    
+    public static void main(String[] args){
+	ArrayList<double[]> data = readCSV("model.csv");
+	update(data);
+	ArrayList<ArrayList<double[]>> basicBS = basicCurveArray(data);
+	displayCharts(basicBS);
     }
 }
