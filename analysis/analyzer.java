@@ -19,8 +19,7 @@ class analyzer extends ApplicationFrame {
 	super(yvar+" vs. "+xvar);
 	JFreeChart lineChart = ChartFactory.createXYLineChart(
 							    yvar+" vs. "+xvar,
-							    xvar,
-							    yvar,
+							    xvar, yvar,
 							    createDataset(dataArray));
          
 	ChartPanel chartPanel = new ChartPanel( lineChart );
@@ -113,7 +112,9 @@ class analyzer extends ApplicationFrame {
 		    (dataArray.get(i+width)[0] - dataArray.get(i-width)[0]);
 		newRow[2] = dataArray.get(i)[1];
 	    }
-	    velocityArray.add(newRow);
+	    if(newRow[1] >= 0){
+		velocityArray.add(newRow);
+	    }
 	}
 	return velocityArray;
     }
@@ -185,9 +186,9 @@ class analyzer extends ApplicationFrame {
 	double[][] X = new double[1][1];
 	X[0][0] = 0;
 	double[][] P = new double[1][1];
-	P[0][0] = 0;
+	P[0][0] = .1;
 	double[][] Q = new double[1][1];
-	Q[0][0] = 0;
+	Q[0][0] = .1;
 	double[][] newPredictionMatrix = new double[1][1];
 	double[][] sensorStateVector = new double[1][1];
 	double[][] sensorCovariance = new double[1][1];
@@ -206,6 +207,13 @@ class analyzer extends ApplicationFrame {
 
 	    sensorStateVector[0][0] = newRow[0] + (2*Math.PI*data.get(i)[1]/4096);
 	    sensorCovariance[0][0] = 2*Math.PI/4096;
+	    myFilter.update(sensorStateVector,sensorCovariance);
+	    /*System.out.println("\nsensor State:");
+	    System.out.println(sensorStateVector[0][0]);
+	    System.out.println("\nsensor Covariance:");
+	    System.out.println(sensorCovariance[0][0]);
+	    */
+	    ans.add(newRow);
 	}
 	return ans;
     }
@@ -218,7 +226,11 @@ class analyzer extends ApplicationFrame {
 	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
 	ArrayList<double[]> positionArray = kalmanPosition(data);
 	ans.add(positionArray);
-	
+	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
+	ans.add(filters.movingAverageFilter(basicAccelerationArray(ans.get(1)),100));
+	ans.add(generateMotorCurve(ans.get(1),
+				   ans.get(2),
+				   torque,rotationalInertia));
 	return ans;
     }
     
@@ -260,7 +272,8 @@ class analyzer extends ApplicationFrame {
     public static void main(String[] args){
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
-	ArrayList<ArrayList<double[]>> basicBS = basicCurveArray(data);
+	ArrayList<ArrayList<double[]>> basicBS = generateKalmanArray(data);
+	//printArray(basicBS.get(0));
 	displayCharts(basicBS);
     }
 }
