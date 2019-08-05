@@ -26,6 +26,18 @@ class analyzer extends ApplicationFrame {
 	chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
 	setContentPane( chartPanel );
     }
+    public analyzer( String xvar , String yvar,
+		     ArrayList<double[]> dataArray,ArrayList<double[]> dataArray2) {
+	super(yvar+" vs. "+xvar);
+	JFreeChart lineChart = ChartFactory.createXYLineChart(
+							    yvar+" vs. "+xvar,
+							    xvar, yvar,
+							    createDataset(dataArray,dataArray2));
+         
+	ChartPanel chartPanel = new ChartPanel( lineChart );
+	chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
+	setContentPane( chartPanel );
+    }
 
     private XYSeriesCollection createDataset(ArrayList<double[]> dataArray) {
 	XYSeriesCollection dataset = new XYSeriesCollection( );
@@ -34,6 +46,21 @@ class analyzer extends ApplicationFrame {
 	    series.add(row[0],row[1]);
 	}
 	dataset.addSeries(series);
+	return dataset;
+    }
+
+    private XYSeriesCollection createDataset(ArrayList<double[]> dataArray, ArrayList<double[]> dataArray2) {
+	XYSeriesCollection dataset = new XYSeriesCollection( );
+	XYSeries series = new XYSeries("movingAverageFilter(100) - no Noise");
+	for(double[] row : dataArray){
+	    series.add(row[0],row[1]);
+	}
+	dataset.addSeries(series);
+	XYSeries series2 = new XYSeries("\"true data\" with no noise");
+	for(double[] row : dataArray2){
+	    series2.add(row[0],row[1]);
+	}
+	dataset.addSeries(series2);
 	return dataset;
     }
 
@@ -79,7 +106,19 @@ class analyzer extends ApplicationFrame {
 	    }
 	    System.out.printf("\n");
 	}
-    }	
+    }
+
+    public static ArrayList<double[]> createTruePositionArray(ArrayList<double[]> dataArray){
+	ArrayList<double[]> ans = new ArrayList<double[]>();
+	for(double[] row : dataArray){
+	    double[] newRow = new double[2];
+	    newRow[0] = row[0];
+	    newRow[1] = row[2];
+	    ans.add(newRow);
+	}
+	return ans;
+
+    }
     public static ArrayList<double[]> createPositionArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> ans = new ArrayList<double[]>();
 	for(double[] row : dataArray){
@@ -181,38 +220,52 @@ class analyzer extends ApplicationFrame {
 	return ans;
     }
     
+    public static ArrayList<ArrayList<double[]>> trueCurveArray(ArrayList<double[]> data){
+	double torque = 0.091106;
+	double rotationalInertia=0.0001;
+	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
+	//ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
+	ans.add(filters.movingAverageFilter(createTruePositionArray(data),100));
+	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
+	ans.add(filters.movingAverageFilter(basicAccelerationArray(ans.get(1)),100));
+	ans.add(generateMotorCurve(ans.get(1),
+				   ans.get(2),
+				   torque,rotationalInertia));
+	return ans;
+    }
+    
     public static ArrayList<double[]> kalmanPosition(ArrayList<double[]> data){
 	ArrayList<double[]> velocity = filters.movingAverageFilter(basicVelocityArray(data),1000);
+	//fix this shit
 	double[][] X = new double[1][1];
-	X[0][0] = 0;
+	X[0][0] = data.get(1000)[0];
 	double[][] P = new double[1][1];
 	P[0][0] = .1;
 	double[][] Q = new double[1][1];
 	Q[0][0] = .1;
+	double[][] H = new double[1][1];
+	H[0][0] = 2*Math.PI/4096;
+
 	double[][] newPredictionMatrix = new double[1][1];
 	double[][] sensorStateVector = new double[1][1];
 	double[][] sensorCovariance = new double[1][1];
 
         double timeStep;
-	myKalmanFilter myFilter = new myKalmanFilter(X,P,Q);
-	//filters.testClass = new filters.testClass(1);
+	myKalmanFilter myFilter = new myKalmanFilter(X,P,Q,H);
+	
 	ArrayList<double[]> ans = new ArrayList<double[]>();
-	for(int i = 0; i < data.size() - 1; i++){
+	for(int i = 0; i < data.size()-1; i++){
+	    System.out.println(i);
 	    double[] newRow = new double[2];
 	    newRow[0] = data.get(i)[0];
 	    newRow[1] = myFilter.getState().get(0,0);
 	    timeStep = data.get(i+1)[0] - newRow[0]; 
-	    newPredictionMatrix[0][0] = newRow[1] + (timeStep * newRow[1]);
+	    newPredictionMatrix[0][0] = velocity.get(i)[1];
 	    myFilter.updatePredictionMatrix(newPredictionMatrix);
-
-	    sensorStateVector[0][0] = newRow[0] + (2*Math.PI*data.get(i)[1]/4096);
-	    sensorCovariance[0][0] = 2*Math.PI/4096;
+	    
+	    sensorStateVector[0][0] = data.get(i)[1];
+	    sensorCovariance[0][0] = 1;
 	    myFilter.update(sensorStateVector,sensorCovariance);
-	    /*System.out.println("\nsensor State:");
-	    System.out.println(sensorStateVector[0][0]);
-	    System.out.println("\nsensor Covariance:");
-	    System.out.println(sensorCovariance[0][0]);
-	    */
 	    ans.add(newRow);
 	}
 	return ans;
@@ -232,6 +285,41 @@ class analyzer extends ApplicationFrame {
 				   ans.get(2),
 				   torque,rotationalInertia));
 	return ans;
+    }
+    
+    public static void displayCharts(ArrayList<ArrayList<double[]>> curves,ArrayList<ArrayList<double[]>> curves2){
+	analyzer chart = new analyzer(
+				      "Time(s)",
+				      "Position(rad)" ,
+				      curves.get(0),curves2.get(0));
+	
+	chart.pack( );
+	chart.setVisible( true ); 
+	
+	analyzer chart2 = new analyzer(
+				       "Time(s)",
+				       "Angular Velocity(rad/s)" ,
+				       curves.get(1),curves2.get(1));
+	
+	chart2.pack( );
+	chart2.setLocation(630,0);
+	chart2.setVisible( true );
+	analyzer chart3 = new analyzer(
+				       "Time(s)",
+				       "Angular Acceleration(rad/s^2)" ,
+				       curves.get(2),curves2.get(2));
+	
+	chart3.pack( );
+	chart3.setLocation(0,427);
+	chart3.setVisible( true ); 
+	analyzer chart4 = new analyzer(
+				       "Torque(N*M)" ,
+				       "Angular Velocity(Rad/S)",
+				       curves.get(3),curves2.get(3));
+	
+	chart4.pack( );
+	chart4.setLocation(630,427);
+	chart4.setVisible( true );	
     }
     
     public static void displayCharts(ArrayList<ArrayList<double[]>> curves){
@@ -272,8 +360,12 @@ class analyzer extends ApplicationFrame {
     public static void main(String[] args){
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
-	ArrayList<ArrayList<double[]>> basicBS = generateKalmanArray(data);
+
+	//ArrayList<ArrayList<double[]>> kalmanBS = basicCurveArray(data);//generateKalmanArray(data);
+	ArrayList<ArrayList<double[]>> kalmanBS = generateKalmanArray(data);
+	ArrayList<ArrayList<double[]>> basicBS = trueCurveArray(data);
 	//printArray(basicBS.get(0));
-	displayCharts(basicBS);
+	//displayCharts(kalmanBS,basicBS);//,kalmanBS);
+	displayCharts(kalmanBS);
     }
 }

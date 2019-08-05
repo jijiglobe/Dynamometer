@@ -53,33 +53,54 @@ class myKalmanFilter{
     public void update(DMatrixRMaj _Z, DMatrixRMaj _R){
 	// Z : actual sensor reading vector
 	// R : Sensor Covariance Matrix
-	H = new SimpleMatrix(_Z);
-	R = new SimpleMatrix(_R);
+	/*H = SimpleMatrix.wrap(_Z);
+	R = SimpleMatrix.wrap(_R);
+	predict();
 	
-	mu = H.mult(this.x);
-	
-	Sigma = H.mult(P).mult(H.transpose());
+	//mu = H.mult(this.x);
+	//Sigma = H.mult(P).mult(H.transpose());
 	//K = Sigma.mult(R.plus(Sigma).invert());
 
 	
-	K = P.mult(H.transpose()).mult(Sigma.plus(R).invert());
+	K = P.mult(H.transpose()).mult(P.plus(R).invert());
 
-	x = x.plus(K.mult(H.minus(mu)));
+	x = x.plus(K.mult(H.minus(x)));
 
 	P = P.minus(K.mult(H).mult(P));
+	*/
+	   // a fast way to make the matrices usable by SimpleMatrix
+	predict();
 
+	SimpleMatrix z = SimpleMatrix.wrap(_Z);
+        SimpleMatrix R = SimpleMatrix.wrap(_R);
+
+        // y = z - H x
+        SimpleMatrix y = z.minus(H.mult(x));
+
+        // S = H P H' + R
+        SimpleMatrix S = H.mult(P).mult(H.transpose()).plus(R);
+
+        // K = PH'S^(-1)
+        SimpleMatrix K = P.mult(H.transpose().mult(S.invert()));
+
+        // x = x + Ky
+        x = x.plus(K.mult(y));
+
+        // P = (I-kH)P = P - KHP
+        P = P.minus(K.mult(H).mult(P));
     }
 
-    public myKalmanFilter(DMatrixRMaj x, DMatrixRMaj P, DMatrixRMaj Q){
+    public myKalmanFilter(DMatrixRMaj x, DMatrixRMaj P, DMatrixRMaj Q, DMatrixRMaj H){
 	setState(x,P);
 	this.Q = new SimpleMatrix(Q);
+	this.H = new SimpleMatrix(H);
 	/*double[][] holder = new double[1][1];
 	DMatrixRMaj matHolder = new DMatrixRMaj(holder);
 	this.mu = new SimpleMatrix(matHolder);*/
     }
 
-    public myKalmanFilter(double[][] x, double[][] P, double[][] Q){
-	this(new DMatrixRMaj(x),new DMatrixRMaj(P),new DMatrixRMaj(Q));
+    public myKalmanFilter(double[][] x, double[][] P, double[][] Q, double[][] H){
+	this(new DMatrixRMaj(x),new DMatrixRMaj(P),new DMatrixRMaj(Q), new DMatrixRMaj(H));
     }
 
 }

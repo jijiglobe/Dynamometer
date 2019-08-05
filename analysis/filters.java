@@ -11,24 +11,26 @@ public class filters{
 	int rowLen = data.get(0).length;
 	double average;
 	int counter;
-	for(int i = 0; i < data.size(); i++){
+	for(int i = filterStep; i < data.size(); i++){
 	    double[] newRow = new double[rowLen];
 	    newRow[0] = data.get(i)[0];
 	    average = 0;
 	    counter = 0;
 	    if( i < filterStep){
-		
+		//newRow[1] = data.get(i)[1];
+		/*
 		for(int c = 0; c <= i+filterStep;c++){
 		    average+= data.get(c)[1];
 		    counter++;
 		}
-		newRow[1] = average/counter;
+		newRow[1] = average/counter;*/
 	    }else if(i>=data.size()-filterStep){
-		for(int c = i-filterStep; c <data.size();c++){
+		newRow[1] = data.get(i)[1];
+		/*for(int c = i-filterStep; c <data.size();c++){
 		    average+= data.get(c)[1];
 		    counter++;
 		}
-		newRow[1] = average/counter;
+		newRow[1] = average/counter;*/
 	    }else{
 		
 		for(int c = i-filterStep; c <= i+filterStep;c++){
