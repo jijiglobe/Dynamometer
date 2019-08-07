@@ -49,6 +49,50 @@ class myKalmanFilter{
 	DMatrixRMaj _R = new DMatrixRMaj(R);
 	update(_Z,_R);
     }
+
+    /*public void print1DArray(double[] arr){
+	System.out.printf("[");
+	System.out.printf(arr[0]);
+	for(int i = 1; i < arr.length; i++){
+	    System.out.printf(",%5.2f",arr[i]);
+	}
+	System.out.printf("]");
+	}*/
+    
+    public void print2DArray(SimpleMatrix arr){
+	System.out.printf("[[");
+	//print1DArray(arr[0]);
+	
+	for(int c = 0; c < arr.numCols();c++){
+	    System.out.printf("%5.2f",arr.get(0,c));
+	}
+	System.out.printf("]");
+	
+	for(int i = 1; i < arr.numRows();i++){
+	    System.out.printf("\n[");
+	    for(int c = 1; c < arr.numCols();c++){
+		System.out.printf(",%5.2f",arr.get(i,c));
+	    }
+	    System.out.printf("]");
+	}
+	System.out.printf("]\n");
+    }
+    
+    public void printFilterState(){
+	System.out.println("State Vector: ");
+	print2DArray(this.x);
+	System.out.println("");
+	
+	System.out.println("State Covariance: ");
+	print2DArray(this.P);
+	System.out.println("");
+
+
+	System.out.println("Prediction: ");
+	print2DArray(this.F);
+	System.out.println("");
+	
+    }
     
     public void update(DMatrixRMaj _Z, DMatrixRMaj _R){
 	// Z : actual sensor reading vector

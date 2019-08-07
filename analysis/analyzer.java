@@ -129,6 +129,7 @@ class analyzer extends ApplicationFrame {
 	}
 	return ans;
     }
+    
     public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
 	int width = 100;
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
@@ -151,7 +152,7 @@ class analyzer extends ApplicationFrame {
 		    (dataArray.get(i+width)[0] - dataArray.get(i-width)[0]);
 		newRow[2] = dataArray.get(i)[1];
 	    }
-	    if(newRow[1] >= 0){
+	    if(true){
 		velocityArray.add(newRow);
 	    }
 	}
@@ -235,14 +236,19 @@ class analyzer extends ApplicationFrame {
     }
     
     public static ArrayList<double[]> kalmanPosition(ArrayList<double[]> data){
-	ArrayList<double[]> velocity = filters.movingAverageFilter(basicVelocityArray(data),1000);
+	System.out.println("data size: " + data.size());
+	ArrayList<double[]> vholder = basicVelocityArray(data);
+	System.out.println("vholder size: " + vholder.size());
+	ArrayList<double[]> velocity = filters.movingAverageFilter(vholder,1000);
+	System.out.println("velocity size: " + velocity.size());
+
 	//fix this shit
 	double[][] X = new double[1][1];
-	X[0][0] = data.get(1000)[0];
+	X[0][0] = data.get(1000)[1];
 	double[][] P = new double[1][1];
-	P[0][0] = .1;
+	P[0][0] = 0;
 	double[][] Q = new double[1][1];
-	Q[0][0] = .1;
+	Q[0][0] = .11;
 	double[][] H = new double[1][1];
 	H[0][0] = 2*Math.PI/4096;
 
@@ -254,8 +260,8 @@ class analyzer extends ApplicationFrame {
 	myKalmanFilter myFilter = new myKalmanFilter(X,P,Q,H);
 	
 	ArrayList<double[]> ans = new ArrayList<double[]>();
-	for(int i = 0; i < data.size()-1; i++){
-	    System.out.println(i);
+	for(int i = 1000; i < data.size()-1000; i++){
+	    
 	    double[] newRow = new double[2];
 	    newRow[0] = data.get(i)[0];
 	    newRow[1] = myFilter.getState().get(0,0);
@@ -264,10 +270,13 @@ class analyzer extends ApplicationFrame {
 	    myFilter.updatePredictionMatrix(newPredictionMatrix);
 	    
 	    sensorStateVector[0][0] = data.get(i)[1];
-	    sensorCovariance[0][0] = 1;
+	    sensorCovariance[0][0] = 0;
 	    myFilter.update(sensorStateVector,sensorCovariance);
+	    //System.out.printf("%f\n",newRow[1]);
 	    ans.add(newRow);
+	    myFilter.printFilterState();
 	}
+	System.out.println("ans size: " + ans.size());
 	return ans;
     }
 
