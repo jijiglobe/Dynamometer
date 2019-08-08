@@ -14,6 +14,10 @@ import org.jfree.data.category.DefaultCategoryDataset;
 
 class analyzer extends ApplicationFrame {
     //---------------- DATA VISUALIZATION CODE BELOW------------------
+
+    //Constructor for a graph with only one data series.
+    //xvar is the x axis label, yvar is the y axis label
+    //dataArray is the data series in an array of coordinate pairs
     public analyzer( String xvar , String yvar,
 		     ArrayList<double[]> dataArray) {
 	super(yvar+" vs. "+xvar);
@@ -26,6 +30,10 @@ class analyzer extends ApplicationFrame {
 	chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
 	setContentPane( chartPanel );
     }
+
+    //Constructor for a graph with multiple data series
+    //xvar is the x axis label, yvar is the y axis label
+    //dataArrays 1 and 2 are the data series
     public analyzer( String xvar , String yvar,
 		     ArrayList<double[]> dataArray,ArrayList<double[]> dataArray2) {
 	super(yvar+" vs. "+xvar);
@@ -39,6 +47,7 @@ class analyzer extends ApplicationFrame {
 	setContentPane( chartPanel );
     }
 
+    //Converts a data series in ArrayList<double[]> for to a XYSeriesCollection for internal use in graphing function
     private XYSeriesCollection createDataset(ArrayList<double[]> dataArray) {
 	XYSeriesCollection dataset = new XYSeriesCollection( );
 	XYSeries series = new XYSeries("movingAverageFilter(100) - no Noise");
@@ -49,6 +58,7 @@ class analyzer extends ApplicationFrame {
 	return dataset;
     }
 
+    //Converts a data series in ArrayList<double[]> for to a XYSeriesCollection for internal use in graphing function
     private XYSeriesCollection createDataset(ArrayList<double[]> dataArray, ArrayList<double[]> dataArray2) {
 	XYSeriesCollection dataset = new XYSeriesCollection( );
 	XYSeries series = new XYSeries("Kalman Filter");
@@ -67,6 +77,10 @@ class analyzer extends ApplicationFrame {
 
     //-------------- DATA PROCESSING STUFF BELOW---------------
     private static int cols = 6;
+    //number of columns in processed data array
+
+
+    //Reads dynamometer data from a CSV, converting it into an ArrayList<double[]>
     private static ArrayList<double[]> readCSV(String filename){
 	int row = 0;
 	int col = 0;
@@ -89,6 +103,7 @@ class analyzer extends ApplicationFrame {
 	return csv;
     }
 
+    //Does initial data processing. (summating quadrature edges and generating corresponding angles based on quadrature data
     public static void update(ArrayList<double[]> dataArray){
 	//[time(s),edges,trueAngle,trueVelocity,totalEdges,Angle(rad)]
 	int totalEdges = 0;
@@ -98,6 +113,8 @@ class analyzer extends ApplicationFrame {
 	    row[5] = 2*Math.PI*totalEdges/4096;
 	}
     }
+
+    //prints out an ArrayList<double[]> in human-readable form (for debugging)
     public static void printArray(ArrayList<double[]> dataArray){
 	for(double[] row : dataArray){
 	    for(double data : row){
@@ -108,6 +125,8 @@ class analyzer extends ApplicationFrame {
 	}
     }
 
+
+    //Takes dataArray post-update and reads the true position data from the model
     public static ArrayList<double[]> createTruePositionArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> ans = new ArrayList<double[]>();
 	double prev = 0;
@@ -122,6 +141,8 @@ class analyzer extends ApplicationFrame {
 	return ans;
 
     }
+
+    //creates a basic array of positions based on encoder readings
     public static ArrayList<double[]> createPositionArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> ans = new ArrayList<double[]>();
 	for(double[] row : dataArray){
@@ -132,7 +153,8 @@ class analyzer extends ApplicationFrame {
 	}
 	return ans;
     }
-    
+
+    //Calculates the average velocity based on a position array based on the 
     public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
 	int width = 100;
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
