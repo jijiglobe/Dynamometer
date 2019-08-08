@@ -5,6 +5,7 @@ import java.io.*;
 
 public class filters{
 
+    //moving average filter smooths data by replacing each data value by its local average
     public static ArrayList<double[]> movingAverageFilter(ArrayList<double[]> data,int filterWidth){
 	ArrayList<double[]> ans = new ArrayList<double[]>();
 	int filterStep = filterWidth/2;
@@ -17,6 +18,8 @@ public class filters{
 	    average = 0;
 	    counter = 0;
 	    if( i < filterStep){
+		//   <-----  Commented out because it leads to compound error ------->
+		
 		//newRow[1] = data.get(i)[1];
 		/*
 		for(int c = 0; c <= i+filterStep;c++){

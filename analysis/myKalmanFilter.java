@@ -15,54 +15,52 @@ class myKalmanFilter{
     // Sigma : Sensor covariance matrix
     // K : Kalman Gain
     
+    //use to manually update state using a DMatrixRMaj
     public void setState(DMatrixRMaj x, DMatrixRMaj P){
 	this.x = new SimpleMatrix(x);
 	this.P = new SimpleMatrix(P);
     }
 
-    public SimpleMatrix getState(){
-	return this.x;
-    }
-    
+    //use to manually update state using a double[][]
     public void setState(double[][] x, double[][] P){
 	DMatrixRMaj matX = new DMatrixRMaj(x);
 	DMatrixRMaj matP = new DMatrixRMaj(P);
 	setState(matX,matP);
     }
     
+    //use to get the state vector
+    public SimpleMatrix getState(){
+	return this.x;
+    }
+
+    //use to manually update prediction matrix (for nonlinear applications)
+    //takes a DMatrixRMaj
     public void updatePredictionMatrix(DMatrixRMaj F){
 	this.F = new SimpleMatrix(F);
     }
 
+    //use to manually update prediction matrix (for nonlinear applications)
+    //takes a double[][]
     public void updatePredictionMatrix(double[][] F){
 	DMatrixRMaj matF = new DMatrixRMaj(F);
 	updatePredictionMatrix(matF);
     }
 
+    //does prediction step, not currently used.
     public void predict(){
 	x = F.mult(x);
-	//P = F.mult(P).mult(F.transpose()).plus(Q);
     }
 
+    //Update step for filter: wrapper function takes double[][]s and calls the DMatrixRMaj version
     public void update(double[][] Z, double[][] R){
 	DMatrixRMaj _Z = new DMatrixRMaj(Z);
 	DMatrixRMaj _R = new DMatrixRMaj(R);
 	update(_Z,_R);
     }
 
-    /*public void print1DArray(double[] arr){
-	System.out.printf("[");
-	System.out.printf(arr[0]);
-	for(int i = 1; i < arr.length; i++){
-	    System.out.printf(",%5.2f",arr[i]);
-	}
-	System.out.printf("]");
-	}*/
-    
+    //prints SimpleMatrix out in human readable form
     public void print2DArray(SimpleMatrix arr){
 	System.out.printf("[[");
-	//print1DArray(arr[0]);
-	
 	for(int c = 0; c < arr.numCols();c++){
 	    System.out.printf("%5.2f",arr.get(0,c));
 	}
@@ -77,7 +75,8 @@ class myKalmanFilter{
 	}
 	System.out.printf("]\n");
     }
-    
+
+    //prints all the relevant state matrices
     public void printFilterState(){
 	System.out.println("State Vector: ");
 	print2DArray(this.x);
@@ -87,13 +86,13 @@ class myKalmanFilter{
 	print2DArray(this.P);
 	System.out.println("");
 
-
 	System.out.println("Prediction: ");
 	print2DArray(this.F);
 	System.out.println("");
 	
     }
     
+    //calls the update step of the function
     public void update(DMatrixRMaj _Z, DMatrixRMaj _R){
 	// Z : actual sensor reading vector
 	// R : Sensor Covariance Matrix
@@ -113,13 +112,14 @@ class myKalmanFilter{
         x = x.plus(K.mult(y));
 
         // P = (I-kH)P = P - KHP
-	/*System.out.println("KHP:");
-	print2DArray(K.mult(H).mult(P));
-	System.out.println("P:");
-	print2DArray(P);*/
         P = P.minus(K.mult(H).mult(P));
     }
 
+    //Constructor for the filter taking DMatrixRMajs
+    // x : Initial state vector
+    // P : Initial state Covariance
+    // Q : Noise from un-modeled sources at each step
+    // H : Transformation matrix for sensor state to state vector
     public myKalmanFilter(DMatrixRMaj x, DMatrixRMaj P, DMatrixRMaj Q, DMatrixRMaj H){
 	setState(x,P);
 	double[][] tempPrediction = new double[1][1];
@@ -127,11 +127,13 @@ class myKalmanFilter{
 	printFilterState();
 	this.Q = new SimpleMatrix(Q);
 	this.H = new SimpleMatrix(H);
-	/*double[][] holder = new double[1][1];
-	DMatrixRMaj matHolder = new DMatrixRMaj(holder);
-	this.mu = new SimpleMatrix(matHolder);*/
     }
 
+    //wrapper constructor that takes double[][]s
+    // x : Initial state vector
+    // P : Initial state Covariance
+    // Q : Noise from un-modeled sources at each step
+    // H : Transformation matrix for sensor state to state vector
     public myKalmanFilter(double[][] x, double[][] P, double[][] Q, double[][] H){
 	this(new DMatrixRMaj(x),new DMatrixRMaj(P),new DMatrixRMaj(Q), new DMatrixRMaj(H));
     }

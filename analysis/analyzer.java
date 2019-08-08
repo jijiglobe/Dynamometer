@@ -105,7 +105,6 @@ class analyzer extends ApplicationFrame {
 
     //Does initial data processing. (summating quadrature edges and generating corresponding angles based on quadrature data
     public static void update(ArrayList<double[]> dataArray){
-	//[time(s),edges,trueAngle,trueVelocity,totalEdges,Angle(rad)]
 	int totalEdges = 0;
 	for(double[] row : dataArray){
 	    totalEdges += row[1];
@@ -154,7 +153,7 @@ class analyzer extends ApplicationFrame {
 	return ans;
     }
 
-    //Calculates the average velocity based on a position array based on the 
+    //Calculates the average velocity based on a position array based on the total distance travelled over 100 time intervals 
     public static ArrayList<double[]> basicVelocityArray(ArrayList<double[]> dataArray){
 	int width = 100;
 	ArrayList<double[]> velocityArray = new ArrayList<double[]>();
@@ -183,7 +182,8 @@ class analyzer extends ApplicationFrame {
 	}
 	return velocityArray;
     }
-    
+
+    //Calculates the Velocity based on the change in velocity over 500 time intervals
     public static ArrayList<double[]> basicAccelerationArray(ArrayList<double[]> dataArray){
 	int width = 500;
 	ArrayList<double[]> accelerationArray = new ArrayList<double[]>();
@@ -210,6 +210,7 @@ class analyzer extends ApplicationFrame {
 	return accelerationArray;
     }
 
+    //uses the parameters of the system, and the acceleration and velocity to generate a Velocity vs. torque curve
     public static ArrayList<double[]> generateMotorCurve(ArrayList<double[]> velocity,
 							 ArrayList<double[]> acceleration,
 							 double springCoeff,
@@ -236,7 +237,6 @@ class analyzer extends ApplicationFrame {
 	double torque = 0.091106;
 	double rotationalInertia=0.0001;
 	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
-	//ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
 	ans.add(filters.movingAverageFilter(createPositionArray(data),100));
 	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
 	ans.add(filters.movingAverageFilter(basicAccelerationArray(ans.get(1)),100));
@@ -246,11 +246,12 @@ class analyzer extends ApplicationFrame {
 	return ans;
     }
     
+    //takes the updated CSV and returns the curves based on the no-noise no-sampling-error curves
+    //formatted as [position,velocity,acceleration,motor curve]
     public static ArrayList<ArrayList<double[]>> trueCurveArray(ArrayList<double[]> data){
 	double torque = 0.091106;
 	double rotationalInertia=0.0001;
 	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
-	//ArrayList<double[]> positionArray = filters.movingAverageFilter(createPositionArray(data),100);
 	ans.add(filters.movingAverageFilter(createTruePositionArray(data),100));
 	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
 	ans.add(filters.movingAverageFilter(basicAccelerationArray(ans.get(1)),100));
@@ -259,7 +260,8 @@ class analyzer extends ApplicationFrame {
 				   torque,rotationalInertia));
 	return ans;
     }
-    
+
+    //Uses a kalman filter with a single state variable to calculate the position with less noise
     public static ArrayList<double[]> kalmanPosition(ArrayList<double[]> data){
 	System.out.println("data size: " + data.size());
 	ArrayList<double[]> vholder = basicVelocityArray(data);
@@ -267,7 +269,7 @@ class analyzer extends ApplicationFrame {
 	ArrayList<double[]> velocity = filters.movingAverageFilter(vholder,1000);
 	System.out.println("velocity size: " + velocity.size());
 
-	//fix this shit
+	
 	double[][] X = new double[1][1];
 	X[0][0] = data.get(1000)[1];
 	double[][] P = new double[1][1];
@@ -297,16 +299,17 @@ class analyzer extends ApplicationFrame {
 	    sensorStateVector[0][0] = data.get(i)[1];
 	    sensorCovariance[0][0] = 0.1;
 	    myFilter.update(sensorStateVector,sensorCovariance);
-	    //System.out.printf("%f\n",newRow[1]);
+	    
 	    ans.add(newRow);
-	    //myFilter.printFilterState();
+	    
 	}
 	System.out.println("ans size: " + ans.size());
 	return ans;
     }
 
     
-    
+    //uses the basicVelocity and basicAcceleration to calculate all arrays based on Kalman position
+    //formatted as [position,velocity,acceleration,motor curve]
     public static ArrayList<ArrayList<double[]>> generateKalmanArray(ArrayList<double[]> data){
 	double torque = 0.091106;
 	double rotationalInertia=0.0001;
@@ -320,7 +323,9 @@ class analyzer extends ApplicationFrame {
 				   torque,rotationalInertia));
 	return ans;
     }
-    
+
+    //insantiates a chart object and displays charts based on the two curve arrays
+    //This version graphs two data series on each chart
     public static void displayCharts(ArrayList<ArrayList<double[]>> curves,ArrayList<ArrayList<double[]>> curves2){
 	analyzer chart = new analyzer(
 				      "Time(s)",
@@ -355,7 +360,9 @@ class analyzer extends ApplicationFrame {
 	chart4.setLocation(630,427);
 	chart4.setVisible( true );	
     }
-    
+
+
+    //instantiates an analyzer and displays all the data in the array of curves
     public static void displayCharts(ArrayList<ArrayList<double[]>> curves){
 	analyzer chart = new analyzer(
 				      "Time(s)",
@@ -395,11 +402,10 @@ class analyzer extends ApplicationFrame {
 	ArrayList<double[]> data = readCSV("model.csv");
 	update(data);
 
-	//ArrayList<ArrayList<double[]>> kalmanBS = basicCurveArray(data);//generateKalmanArray(data);
 	ArrayList<ArrayList<double[]>> kalmanBS = generateKalmanArray(data);
 	ArrayList<ArrayList<double[]>> basicBS = trueCurveArray(data);
-	//printArray(basicBS.get(0));
+
 	displayCharts(kalmanBS,basicBS);
-	//displayCharts(kalmanBS);
+
     }
 }
