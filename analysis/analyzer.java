@@ -51,7 +51,7 @@ class analyzer extends ApplicationFrame {
 
     private XYSeriesCollection createDataset(ArrayList<double[]> dataArray, ArrayList<double[]> dataArray2) {
 	XYSeriesCollection dataset = new XYSeriesCollection( );
-	XYSeries series = new XYSeries("movingAverageFilter(100) - no Noise");
+	XYSeries series = new XYSeries("Kalman Filter");
 	for(double[] row : dataArray){
 	    series.add(row[0],row[1]);
 	}
@@ -110,11 +110,14 @@ class analyzer extends ApplicationFrame {
 
     public static ArrayList<double[]> createTruePositionArray(ArrayList<double[]> dataArray){
 	ArrayList<double[]> ans = new ArrayList<double[]>();
-	for(double[] row : dataArray){
+	double prev = 0;
+	for(int i = 0; i < dataArray.size(); i++){
+	    double[] row  = dataArray.get(i);
 	    double[] newRow = new double[2];
 	    newRow[0] = row[0];
 	    newRow[1] = row[2];
 	    ans.add(newRow);
+	    prev = newRow[1];
 	}
 	return ans;
 
@@ -162,7 +165,7 @@ class analyzer extends ApplicationFrame {
     public static ArrayList<double[]> basicAccelerationArray(ArrayList<double[]> dataArray){
 	int width = 500;
 	ArrayList<double[]> accelerationArray = new ArrayList<double[]>();
-	for(int i = 0; i < dataArray.size();i++){
+	for(int i = 0; i < dataArray.size()-5000;i++){
 	    double[] newRow = new double[2];
 	    if( i < width){
 		newRow[0] = dataArray.get(i)[0];
@@ -246,9 +249,9 @@ class analyzer extends ApplicationFrame {
 	double[][] X = new double[1][1];
 	X[0][0] = data.get(1000)[1];
 	double[][] P = new double[1][1];
-	P[0][0] = 0;
+	P[0][0] = 0.1;
 	double[][] Q = new double[1][1];
-	Q[0][0] = .11;
+	Q[0][0] = 0.11;
 	double[][] H = new double[1][1];
 	H[0][0] = 2*Math.PI/4096;
 
@@ -270,11 +273,11 @@ class analyzer extends ApplicationFrame {
 	    myFilter.updatePredictionMatrix(newPredictionMatrix);
 	    
 	    sensorStateVector[0][0] = data.get(i)[1];
-	    sensorCovariance[0][0] = 0;
+	    sensorCovariance[0][0] = 0.1;
 	    myFilter.update(sensorStateVector,sensorCovariance);
 	    //System.out.printf("%f\n",newRow[1]);
 	    ans.add(newRow);
-	    myFilter.printFilterState();
+	    //myFilter.printFilterState();
 	}
 	System.out.println("ans size: " + ans.size());
 	return ans;
@@ -374,7 +377,7 @@ class analyzer extends ApplicationFrame {
 	ArrayList<ArrayList<double[]>> kalmanBS = generateKalmanArray(data);
 	ArrayList<ArrayList<double[]>> basicBS = trueCurveArray(data);
 	//printArray(basicBS.get(0));
-	//displayCharts(kalmanBS,basicBS);//,kalmanBS);
-	displayCharts(kalmanBS);
+	displayCharts(kalmanBS,basicBS);
+	//displayCharts(kalmanBS);
     }
 }

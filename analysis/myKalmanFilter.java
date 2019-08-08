@@ -41,7 +41,7 @@ class myKalmanFilter{
 
     public void predict(){
 	x = F.mult(x);
-	P = F.mult(P).mult(F.transpose()).plus(Q);
+	//P = F.mult(P).mult(F.transpose()).plus(Q);
     }
 
     public void update(double[][] Z, double[][] R){
@@ -97,45 +97,34 @@ class myKalmanFilter{
     public void update(DMatrixRMaj _Z, DMatrixRMaj _R){
 	// Z : actual sensor reading vector
 	// R : Sensor Covariance Matrix
-	/*H = SimpleMatrix.wrap(_Z);
-	R = SimpleMatrix.wrap(_R);
-	predict();
-	
-	//mu = H.mult(this.x);
-	//Sigma = H.mult(P).mult(H.transpose());
-	//K = Sigma.mult(R.plus(Sigma).invert());
-
-	
-	K = P.mult(H.transpose()).mult(P.plus(R).invert());
-
-	x = x.plus(K.mult(H.minus(x)));
-
-	P = P.minus(K.mult(H).mult(P));
-	*/
-	   // a fast way to make the matrices usable by SimpleMatrix
-	predict();
 
 	SimpleMatrix z = SimpleMatrix.wrap(_Z);
         SimpleMatrix R = SimpleMatrix.wrap(_R);
-
+	
         // y = z - H x
         SimpleMatrix y = z.minus(H.mult(x));
-
+	
         // S = H P H' + R
         SimpleMatrix S = H.mult(P).mult(H.transpose()).plus(R);
-
+	
         // K = PH'S^(-1)
         SimpleMatrix K = P.mult(H.transpose().mult(S.invert()));
-
-        // x = x + Ky
+	// x = x + Ky
         x = x.plus(K.mult(y));
 
         // P = (I-kH)P = P - KHP
+	/*System.out.println("KHP:");
+	print2DArray(K.mult(H).mult(P));
+	System.out.println("P:");
+	print2DArray(P);*/
         P = P.minus(K.mult(H).mult(P));
     }
 
     public myKalmanFilter(DMatrixRMaj x, DMatrixRMaj P, DMatrixRMaj Q, DMatrixRMaj H){
 	setState(x,P);
+	double[][] tempPrediction = new double[1][1];
+	this.F = new SimpleMatrix(new DMatrixRMaj(tempPrediction));
+	printFilterState();
 	this.Q = new SimpleMatrix(Q);
 	this.H = new SimpleMatrix(H);
 	/*double[][] holder = new double[1][1];
