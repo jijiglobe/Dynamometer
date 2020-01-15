@@ -161,7 +161,7 @@ class model{
 	//will fail if system never reaches back back below 0.1rad/s
 	//   - note that this shouldn't be possible
 	try{
-	    BufferedWriter fileWriter = new BufferedWriter(new FileWriter("../analysis/model.csv"));
+	    BufferedWriter fileWriter = new BufferedWriter(new FileWriter("model.csv"));
 	    String line = String.format("Time(s),edges,TrueAngle,TrueVelocity");
 	    fileWriter.write(line);
 	    
@@ -189,17 +189,4 @@ class model{
 	
     }
     
-}
-
-public class motorModel{
-
-    public static void main(String[] args){
-	parameters params = new parameters();
-	motor myMotor = new motor(params.motorStall, params.motorFree);
-	inertialDisk myDisk = new inertialDisk(params.diskInertia);
-	spring mySpring = new spring(params.springCoeff); 
-	encoder myEncoder = new encoder(params.encoderEPR,params.encoderError);
-	model myModel = new model(myMotor,myDisk,mySpring,myEncoder,params.timeResolution,params.decoderSampleRate,false);
-	myModel.run();
-    }
 }
