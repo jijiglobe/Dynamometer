@@ -147,15 +147,4 @@ class display extends ApplicationFrame {
 	return dataset;
     }
 
-    public static void main(String[] args){
-	ArrayList<double[]> data = analyzer.readCSV("model.csv");
-        analyzer.update(data);
-
-        ArrayList<ArrayList<double[]>> kalmanBS = analyzer.generateKalmanArray(data);
-        ArrayList<ArrayList<double[]>> basicBS = analyzer.trueCurveArray(data);
-
-	displayCharts(kalmanBS,basicBS);
-
-    }
-
 }

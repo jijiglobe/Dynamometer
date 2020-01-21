@@ -186,9 +186,7 @@ class analyzer {
     
     //takes the updated CSV and returns the curves based on the no-noise no-sampling-error curves
     //formatted as [position,velocity,acceleration,motor curve]
-    public static ArrayList<ArrayList<double[]>> trueCurveArray(ArrayList<double[]> data){
-	double torque = 0.091106;
-	double rotationalInertia=0.0001;
+    public static ArrayList<ArrayList<double[]>> trueCurveArray(ArrayList<double[]> data,double torque, double rotationalInertia){
 	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
 	ans.add(filters.movingAverageFilter(createTruePositionArray(data),100));
 	ans.add(filters.movingAverageFilter(basicVelocityArray(ans.get(0)),1000));
@@ -248,9 +246,7 @@ class analyzer {
     
     //uses the basicVelocity and basicAcceleration to calculate all arrays based on Kalman position
     //formatted as [position,velocity,acceleration,motor curve]
-    public static ArrayList<ArrayList<double[]>> generateKalmanArray(ArrayList<double[]> data){
-	double torque = 0.091106;
-	double rotationalInertia=0.0001;
+    public static ArrayList<ArrayList<double[]>> generateKalmanArray(ArrayList<double[]> data,double torque,double rotationalInertia){
 	ArrayList<ArrayList<double[]>> ans = new ArrayList<ArrayList<double[]>>();
 	ArrayList<double[]> positionArray = kalmanPosition(data);
 	ans.add(positionArray);

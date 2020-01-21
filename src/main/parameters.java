@@ -7,5 +7,4 @@ public class parameters{
     public static double encoderError = 0.1;
     public static int timeResolution = 100000000;
     public static int decoderSampleRate = 250000;
-    public parameters(){}
 }
