@@ -1,9 +1,5 @@
 #include <Arduino.h>
 
-const unsigned int quadrature_hz = 500000;
-unsigned long previousMicros = 0;
-unsigned long previousMillis = 0;
-
 //input pins for IC chip
 const int state_transition = 10;
 const int overflow_signal = 11;
@@ -35,8 +31,11 @@ int quad_channel_b;
 
 int test_clock = 52;
 int test_clock_state;
-
 char buffer[100];
+char currentPos;
+int D7FlipTime = 0;
+char previousD7 = 0;
+char collectedData[10000][2]; //this buffer holds all of the recorded data. if the system runs for 1 million timesteps it will overflow.
 void setup() {
   
   // put your setup code here, to run once:
@@ -78,82 +77,98 @@ void setup() {
   REG_PWM_CMR6 = 0 << 9;                          // select clock and polarity for PWM channel (pin7) -> (CPOL = 0)
   REG_PWM_CPRD6 = 10;                             // initialize PWM period -> T = value/84MHz (value: up to 16bit), value=10 -> 8.4MHz
   REG_PWM_CDTY6 = 5;                              // initialize duty cycle, REG_PWM_CPRD6 / value = duty cycle, for 10/5 = 50%
-  REG_PWM_ENA = 1 << 6;                           // enable PWM on PWM channel (pin 7 = PWML6)
+  REG_PWM_ENA = 1 << 6;                           // enable PWM on PWM channel (pin 7 = PWML6
 
-  quadrature_state = 0;
-  quad_channel_a = LOW;
-  quad_channel_b = LOW;
-  attachInterrupt(digitalPinToInterrupt(overflow_signal),CNT_DCDR,CHANGE); 
+  //digitalWrite(reset,HIGH);
+  //digitalWrite(reset,LOW);
 }
-void CNT_DCDR(){
-  Serial.println("state change detected");
+
+void readData(){
+  int i = 0;
+  while(millis() - D7FlipTime < 100){
+    collectedData[i][0] = micros();
+    if(digitalRead(D7)){
+      bitSet(collectedData[i][1],7);
+    }
+    if(digitalRead(D6)){
+      bitSet(collectedData[i][1],6);
+    }
+    if(digitalRead(D5)){
+      bitSet(collectedData[i][1],5);
+    }
+    if(digitalRead(D4)){
+      bitSet(collectedData[i][1],4);
+    }
+    if(digitalRead(D3)){
+      bitSet(collectedData[i][1],3);
+    }
+    if(digitalRead(D2)){
+      bitSet(collectedData[i][1],2);
+    }
+    if(digitalRead(D1)){
+      bitSet(collectedData[i][1],1);
+    }
+    if(digitalRead(D0)){
+      bitSet(collectedData[i][1],0);
+    }
+    //sprintf(buffer,"%d",collectedData[i][1]);
+    //Serial.println(buffer);
+    delay(1);
+    if(abs(collectedData[i][1] - previousD7) >= 50){
+      previousD7 = collectedData[i][1];
+      D7FlipTime = millis();
+    }
+    i++;
+  }
+}
+
+void printData(){
+  int i = 0;
+  while(collectedData[i][0] != 0 || collectedData[i+1][0] != 0){
+    sprintf(buffer,"%d,%d",collectedData[i][0],collectedData[i][1]);
+    Serial.println(buffer);
+    delay(1);
+    collectedData[i][0] = 0;
+    collectedData[i][1] = 0;
+    i++;
+  }
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  /*if (micros() - previousMicros >= quadrature_hz) {
-    //Serial.println("state change");
-    previousMicros = micros();
-    switch (quadrature_state) {
-      case 0:
-        // statements
-        quad_channel_a = HIGH;
-        quad_channel_b = LOW;
-        quadrature_state = 1;
-      break;
-      case 1:
-        // statements
-        quad_channel_a = HIGH;
-        quad_channel_b = HIGH;
-        quadrature_state = 2;
-      break;
-       case 2:
-        // statements
-        quad_channel_a = LOW;
-        quad_channel_b = HIGH;
-        quadrature_state = 3;
-      break;
-      case 3:
-        // statements
-        quad_channel_a = LOW;
-        quad_channel_b = LOW;
-        quadrature_state = 0;
-      break;
-    }
-    digitalWrite(quadrature_a,quad_channel_a);
-    digitalWrite(quadrature_b,quad_channel_b);
-    //Serial.println(quadrature_state);
-    //Serial.println("a:" + String(quadrature_a) + "b: " + String(quadrature_b));
-  }*/
-
-  if(millis() - previousMillis >= 1000){
-    int microList[10];
-    microList[0] = micros();
-    microList[2] = digitalRead(D0);
-    microList[3] = digitalRead(D1);
-    microList[4] = digitalRead(D2);
-    microList[5] = digitalRead(D3);
-    microList[6] = digitalRead(D4);
-    microList[7] = digitalRead(D5);
-    microList[8] = digitalRead(D6);
-    microList[9] = digitalRead(D7);
-    microList[1] = micros();
-    sprintf(buffer,"Times: %d, %d, %d, %d, %d, %d, %d, %d",microList[0],microList[1],microList[2],microList[3],microList[4],microList[5],microList[6],microList[7]);
-    Serial.println(buffer);
-    /*
-    sprintf(buffer,"Counter: %d%d%d%d%d%d%d%d",
-          digitalRead(D0),digitalRead(D7),digitalRead(D6),digitalRead(D5),
-          digitalRead(D4),digitalRead(D3),digitalRead(D2),digitalRead(D1));
-    Serial.println(buffer);
-
-    previousMillis = millis();*/
+  currentPos = 0;
+  if(digitalRead(D7)){
+    bitSet(currentPos,7);
   }
-  /*
-  if(test_clock_state == LOW){
-    test_clock_state = HIGH;
-  }else{
-    test_clock_state = LOW;
+  if(digitalRead(D6)){
+    bitSet(currentPos,6);
   }
-  digitalWrite(test_clock,test_clock_state);
-  */
+  if(digitalRead(D5)){
+    bitSet(currentPos,5);
+  }
+  if(digitalRead(D4)){
+    bitSet(currentPos,4);
+  }
+  if(digitalRead(D3)){
+    bitSet(currentPos,3);
+  }
+  if(digitalRead(D2)){
+    bitSet(currentPos,2);
+  }
+  if(digitalRead(D1)){
+    bitSet(currentPos,1);
+  }
+  if(digitalRead(D0)){
+    bitSet(currentPos,0);
+  }
+  //sprintf(buffer,"%d",currentPos);
+  //Serial.println(buffer);
+  if(currentPos > 2){
+    Serial.println("Motion Started");
+    D7FlipTime = millis();
+    readData();
+    digitalWrite(reset,0);
+    digitalWrite(reset,1);
+    Serial.println("Motion Ceased");
+    printData();
+  }
 }
