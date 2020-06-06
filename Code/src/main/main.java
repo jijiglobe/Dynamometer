@@ -47,13 +47,14 @@ class main{
     
     public static void visualize(JTextField inertia,
 				JTextField coeff,
-				JTextField EPR){
+				 JTextField EPR,JTextField dataFile){
 
 	double diskInertia = Double.parseDouble(inertia.getText());
 	double springCoeff = Double.parseDouble(coeff.getText());
 	int encoderEPR = (int) Double.parseDouble(EPR.getText());
-
-        ArrayList<double[]> data = analyzer.readCSV("model.csv");
+	String dataFileName = dataFile.getText();
+	
+        ArrayList<double[]> data = analyzer.readCSV(dataFileName);
         analyzer.update(data);
 
 	//uses torque and rotationalinertia
@@ -66,18 +67,23 @@ class main{
     }
 
     public static JTextField addTextBox(JPanel textPanel,String name,
-				  double defaultValue,int height){
+					String defaultValue,int height){
 	GridBagConstraints gbc = new GridBagConstraints();
 	gbc.gridy = height;
 	JLabel label = new JLabel(name);
 	JTextField tf = new JTextField(20);
-	String val = "" + defaultValue;
-	tf.setText(val);
+	tf.setText(defaultValue);
 	textPanel.add(label,gbc);
 	textPanel.add(tf,gbc);
 	return tf;
     }
-
+    
+    public static JTextField addTextBox(JPanel textPanel,String name,
+					double defaultValue,int height){
+	String val = ""+defaultValue;
+	return addTextBox(textPanel,name,val,height);
+    }
+    
     public static JButton addButton(JPanel textPanel, String name, int height){
 	GridBagConstraints gbc = new GridBagConstraints();
 	gbc.gridy = height;
@@ -103,25 +109,26 @@ class main{
 	JTextField Error = addTextBox(panel,"Encoder Error",params.encoderError,5);
 	JTextField resolution = addTextBox(panel,"Time Resolution",params.timeResolution,6);
 	JTextField sampleRate = addTextBox(panel,"Decoder Sample Rate",params.decoderSampleRate,7);
-
-	JButton simButton = addButton(panel,"Run Simulation", 8);
+	JTextField dataFile = addTextBox(panel,"Data CSV File","model.csv",8);
+	
+	JButton simButton = addButton(panel,"Run Simulation", 9);
 	simButton.addActionListener(new ActionListener(){
 		public void actionPerformed(ActionEvent e){
 		    simulate(stall,free,inertia,coeff,EPR,Error,resolution,sampleRate);
 		}
 	    });
-
+	
 	JButton anButton = addButton(panel,"Run Analysis",9);
 	anButton.addActionListener(new ActionListener(){
 		public void actionPerformed(ActionEvent e){
-		    visualize(inertia,coeff,EPR);
+		    visualize(inertia,coeff,EPR,dataFile);
 		}
 	    });
-
+	
 	frame.getContentPane().add(panel);
 	
 	frame.setVisible(true);
-	
+	return;
 	/*simulate();	
 	  visualize();*/
     }

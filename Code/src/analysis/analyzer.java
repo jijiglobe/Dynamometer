@@ -44,10 +44,23 @@ class analyzer {
     //Does initial data processing. (summating quadrature edges and generating corresponding angles based on quadrature data
     public static void update(ArrayList<double[]> dataArray){
 	int totalEdges = 0;
+	double totalTime = 0;
+	double previousPosition = 0.0;
+	double previousTime = 0;
+	double holder;
 	for(double[] row : dataArray){
-	    totalEdges += row[1];
-	    row[4] = totalEdges;
-	    row[5] = 2*Math.PI*totalEdges/4096;
+	    if(row[1] - previousPosition < -10){
+		totalEdges += 256;
+	    }
+	    previousPosition = row[1];
+	    holder = row[0];
+	    if(row[0] < previousTime){
+		totalTime += 256;
+	    }
+	    row[0] = (totalTime + row[0])/Math.pow(10,6);
+	    previousTime = holder;
+	    row[4] = totalEdges + row[1];
+	    row[5] = 2*Math.PI*row[4]/4096;
 	}
     }
 
